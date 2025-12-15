@@ -7,6 +7,8 @@ import com.google.adk.events.Event;
 import com.google.adk.runner.InMemoryRunner;
 import com.google.adk.sessions.Session;
 import com.google.adk.tools.FunctionTool;
+import com.google.adk.tools.mcp.McpToolset;
+import com.google.adk.tools.mcp.StreamableHttpServerParameters;
 import com.google.genai.types.Content;
 import com.google.genai.types.Part;
 import com.sentries.SentinelX.tools.GithubTools;
@@ -56,7 +58,7 @@ Primary Objective: Automate repository maintenance, branch management, and PR op
    - Provide a concise analysis of the code, structure, or recent commits.
 
 2. If the user requests a new feature or fix:
-   - EXECUTE createBranch(branchName) to create a dedicated feature or hotfix branch.
+   - EXECUTE createBranch() to create a dedicated feature or hotfix branch.
 
 3. If the user wants to modify a file:
    - EXECUTE getFileContent(filePath) to retrieve it.
@@ -81,11 +83,16 @@ Primary Objective: Automate repository maintenance, branch management, and PR op
 End each execution with a short summary of what was done and any follow-up recommendations.
 """)
 
-                .tools(FunctionTool.create(GithubTools.class, "createBranch"),
-                        FunctionTool.create(GithubTools.class, "createPullRequest"),
-                        FunctionTool.create(GithubTools.class, "mergePullRequest"),
-                        FunctionTool.create(GithubTools.class, "getFileContent"),
-                        FunctionTool.create(GithubTools.class, "updateFileContent")
+//                .tools(FunctionTool.create(GithubTools.class, "createBranch"),
+//                        FunctionTool.create(GithubTools.class, "createPullRequest"),
+//                        FunctionTool.create(GithubTools.class, "mergePullRequest"),
+//                        FunctionTool.create(GithubTools.class, "getFileContent"),
+//                        FunctionTool.create(GithubTools.class, "updateFileContent")
+//                )
+                .tools(
+                        new McpToolset(
+                                StreamableHttpServerParameters.builder("http://localhost:8080/mcp").build()
+                        )
                 )
                 .build();
     }
