@@ -1,0 +1,106 @@
+name: Delete Cloud Run Services
+
+on:
+  workflow_dispatch:
+    inputs:
+      service:
+        description: 'Service to delete'
+        required: true
+        type: choice
+        options:
+          - sentinelx
+          - githubmcp
+          - both
+      confirm:
+        description: 'Type "DELETE" to confirm deletion'
+        required: true
+        type: string
+
+env:
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GCP_REGION: ${{ vars.GCP_REGION || 'us-central1' }}
+
+jobs:
+  delete-services:
+    name: Delete Cloud Run Service(s)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Validate confirmation
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "DELETE" ]; then
+            echo "❌ Deletion cancelled: confirmation string does not match 'DELETE'"
+            exit 1
+          fi
+          echo "✅ Confirmation validated"
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Delete SentinelX Service
+        if: github.event.inputs.service == 'sentinelx' || github.event.inputs.service == 'both'
+        run: |
+          SERVICE_NAME="${{ vars.SENTINELX_SERVICE_NAME || 'sentinelx-service' }}"
+          echo "Checking if service $SERVICE_NAME exists..."
+          
+          if gcloud run services describe $SERVICE_NAME \
+            --region=${{ env.GCP_REGION }} \
+            --project=${{ env.GCP_PROJECT_ID }} &> /dev/null; then
+            
+            echo "Deleting SentinelX service: $SERVICE_NAME"
+            gcloud run services delete $SERVICE_NAME \
+              --region=${{ env.GCP_REGION }} \
+              --project=${{ env.GCP_PROJECT_ID }} \
+              --quiet
+            
+            echo "✅ SentinelX service deleted successfully"
+          else
+            echo "⚠️  Service $SERVICE_NAME does not exist, skipping deletion"
+          fi
+
+      - name: Delete GithubMCP Service
+        if: github.event.inputs.service == 'githubmcp' || github.event.inputs.service == 'both'
+        run: |
+          SERVICE_NAME="${{ vars.GITHUBMCP_SERVICE_NAME || 'githubmcp-service' }}"
+          echo "Checking if service $SERVICE_NAME exists..."
+          
+          if gcloud run services describe $SERVICE_NAME \
+            --region=${{ env.GCP_REGION }} \
+            --project=${{ env.GCP_PROJECT_ID }} &> /dev/null; then
+            
+            echo "Deleting GithubMCP service: $SERVICE_NAME"
+            gcloud run services delete $SERVICE_NAME \
+              --region=${{ env.GCP_REGION }} \
+              --project=${{ env.GCP_PROJECT_ID }} \
+              --quiet
+            
+            echo "✅ GithubMCP service deleted successfully"
+          else
+            echo "⚠️  Service $SERVICE_NAME does not exist, skipping deletion"
+          fi
+
+      - name: Deletion Summary
+        run: |
+          echo "## Deletion Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Service(s) Deleted:** ${{ github.event.inputs.service }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Region:** ${{ env.GCP_REGION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Project:** ${{ env.GCP_PROJECT_ID }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deleted by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Timestamp:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️  **Note:** Docker images in Artifact Registry were not deleted." >> $GITHUB_STEP_SUMMARY
+          echo "To delete images, run:" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "gcloud artifacts docker images delete \\" >> $GITHUB_STEP_SUMMARY
+          echo "  ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/REPO_NAME/IMAGE_NAME:TAG" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
