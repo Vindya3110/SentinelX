@@ -1,0 +1,79 @@
+name: Build and Test
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'apps/**'
+      - '.github/workflows/build-only.yml'
+  push:
+    branches: [ develop ]
+    paths:
+      - 'apps/**'
+
+jobs:
+  build-sentinelx:
+    name: Build and Test SentinelX
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Make gradlew executable
+        run: chmod +x apps/sentinelx/gradlew
+
+      - name: Build with Gradle
+        run: ./gradlew clean build --no-daemon
+        working-directory: apps/sentinelx
+
+      - name: Run tests
+        run: ./gradlew test --no-daemon
+        working-directory: apps/sentinelx
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sentinelx-test-results
+          path: apps/sentinelx/build/test-results/
+
+  build-githubmcp:
+    name: Build and Test GithubMCP
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Make gradlew executable
+        run: chmod +x apps/githubmcp/gradlew
+
+      - name: Build with Gradle
+        run: ./gradlew clean build --no-daemon
+        working-directory: apps/githubmcp
+
+      - name: Run tests
+        run: ./gradlew test --no-daemon
+        working-directory: apps/githubmcp
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: githubmcp-test-results
+          path: apps/githubmcp/build/test-results/

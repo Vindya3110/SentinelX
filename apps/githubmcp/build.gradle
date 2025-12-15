@@ -1,10 +1,10 @@
 plugins {
 	id 'java'
-	id 'org.springframework.boot' version '3.5.6'
+	id 'org.springframework.boot' version '3.5.8'
 	id 'io.spring.dependency-management' version '1.1.7'
 }
 
-group = 'com.sentries'
+group = 'io.vindhya'
 version = '0.0.1-SNAPSHOT'
 description = 'Demo project for Spring Boot'
 
@@ -24,6 +24,10 @@ repositories {
 	mavenCentral()
 }
 
+ext {
+	set('springAiVersion', "1.1.2")
+}
+
 dependencies {
 
     implementation platform('org.springframework.cloud:spring-cloud-dependencies:2023.0.3')
@@ -36,23 +40,20 @@ dependencies {
     // https://mvnrepository.com/artifact/com.google.cloud/google-cloud-secretmanager
     implementation("com.google.cloud:google-cloud-secretmanager:2.66.0")
 
-    // https://mvnrepository.com/artifact/org.springframework.cloud/spring-cloud-starter-bootstrap
-    implementation("org.springframework.cloud:spring-cloud-starter-bootstrap:4.3.0")
-
 	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.ai:spring-ai-starter-mcp-server-webmvc'
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
 
-	//google adk
-    implementation 'com.google.adk:google-adk:0.3.0'
+dependencyManagement {
+	imports {
+		mavenBom "org.springframework.ai:spring-ai-bom:${springAiVersion}"
+	}
 }
 
 tasks.named('test') {
 	useJUnitPlatform()
-}
-
-bootJar {
-    archiveFileName = 'sentinelx-app.jar' // Forces consistent output name
 }

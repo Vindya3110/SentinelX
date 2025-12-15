@@ -1,0 +1,132 @@
+# Deployment Configuration for SentinelX Applications
+# This file documents the required GitHub secrets and variables
+
+# ===========================================
+# GitHub Secrets (Settings > Secrets and variables > Actions > Secrets)
+# ===========================================
+
+secrets:
+  # GCP Project ID
+  GCP_PROJECT_ID: "sentinalx"  # Your GCP project ID
+  
+  # Workload Identity Federation Provider (Recommended for authentication)
+  # Format: projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/POOL_ID/providers/PROVIDER_ID
+  GCP_WORKLOAD_IDENTITY_PROVIDER: "projects/YOUR_PROJECT_NUMBER/locations/global/workloadIdentityPools/github-pool/providers/github-provider"
+  
+  # Service Account Email for Workload Identity
+  # Format: SERVICE_ACCOUNT_NAME@PROJECT_ID.iam.gserviceaccount.com
+  GCP_SERVICE_ACCOUNT: "github-actions@sentinalx.iam.gserviceaccount.com"
+
+# ===========================================
+# GitHub Variables (Settings > Secrets and variables > Actions > Variables)
+# ===========================================
+
+variables:
+  # GCP Configuration
+  GCP_REGION: "us-central1"  # Options: us-central1, us-east1, europe-west1, asia-southeast1, etc.
+  ARTIFACT_REGISTRY_REPO: "sentinelx-docker-repo"  # Name of your Artifact Registry repository
+  
+  # SentinelX Service Configuration
+  SENTINELX_SERVICE_NAME: "sentinelx-service"
+  SENTINELX_MEMORY: "512Mi"  # Options: 128Mi, 256Mi, 512Mi, 1Gi, 2Gi, 4Gi, 8Gi
+  SENTINELX_CPU: "1"  # Options: 1, 2, 4, 6, 8
+  SENTINELX_MIN_INSTANCES: "0"  # Minimum number of instances
+  SENTINELX_MAX_INSTANCES: "10"  # Maximum number of instances
+  SENTINELX_TIMEOUT: "300"  # Request timeout in seconds (max 3600)
+  
+  # GithubMCP Service Configuration
+  GITHUBMCP_SERVICE_NAME: "githubmcp-service"
+  GITHUBMCP_MEMORY: "512Mi"  # Options: 128Mi, 256Mi, 512Mi, 1Gi, 2Gi, 4Gi, 8Gi
+  GITHUBMCP_CPU: "1"  # Options: 1, 2, 4, 6, 8
+  GITHUBMCP_MIN_INSTANCES: "0"  # Minimum number of instances
+  GITHUBMCP_MAX_INSTANCES: "10"  # Maximum number of instances
+  GITHUBMCP_TIMEOUT: "300"  # Request timeout in seconds (max 3600)
+
+# ===========================================
+# GCP Setup Instructions
+# ===========================================
+
+gcp_setup:
+  steps:
+    - name: "Create Artifact Registry Repository"
+      command: |
+        gcloud artifacts repositories create sentinelx-docker-repo \
+          --repository-format=docker \
+          --location=us-central1 \
+          --description="Docker repository for SentinelX applications"
+    
+    - name: "Create Service Account"
+      command: |
+        gcloud iam service-accounts create github-actions \
+          --description="Service account for GitHub Actions" \
+          --display-name="GitHub Actions"
+    
+    - name: "Grant Required Permissions"
+      commands:
+        - |
+          # Artifact Registry Writer
+          gcloud projects add-iam-policy-binding sentinalx \
+            --member="serviceAccount:github-actions@sentinalx.iam.gserviceaccount.com" \
+            --role="roles/artifactregistry.writer"
+        - |
+          # Cloud Run Admin
+          gcloud projects add-iam-policy-binding sentinalx \
+            --member="serviceAccount:github-actions@sentinalx.iam.gserviceaccount.com" \
+            --role="roles/run.admin"
+        - |
+          # Service Account User
+          gcloud projects add-iam-policy-binding sentinalx \
+            --member="serviceAccount:github-actions@sentinalx.iam.gserviceaccount.com" \
+            --role="roles/iam.serviceAccountUser"
+        - |
+          # Secret Manager Accessor (for runtime)
+          gcloud projects add-iam-policy-binding sentinalx \
+            --member="serviceAccount:github-actions@sentinalx.iam.gserviceaccount.com" \
+            --role="roles/secretmanager.secretAccessor"
+    
+    - name: "Setup Workload Identity Federation"
+      commands:
+        - |
+          # Create Workload Identity Pool
+          gcloud iam workload-identity-pools create github-pool \
+            --location="global" \
+            --display-name="GitHub Actions Pool"
+        - |
+          # Create Workload Identity Provider
+          gcloud iam workload-identity-pools providers create-oidc github-provider \
+            --location="global" \
+            --workload-identity-pool="github-pool" \
+            --issuer-uri="https://token.actions.githubusercontent.com" \
+            --attribute-mapping="google.subject=assertion.sub,attribute.actor=assertion.actor,attribute.repository=assertion.repository" \
+            --attribute-condition="assertion.repository_owner=='Vindya3110'"
+        - |
+          # Grant Service Account access to Workload Identity
+          gcloud iam service-accounts add-iam-policy-binding github-actions@sentinalx.iam.gserviceaccount.com \
+            --role="roles/iam.workloadIdentityUser" \
+            --member="principalSet://iam.googleapis.com/projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/github-pool/attribute.repository/Vindya3110/SentinelX"
+
+# ===========================================
+# Environment-specific Configuration
+# ===========================================
+
+environments:
+  dev:
+    description: "Development environment"
+    features:
+      - "Lower resource allocation"
+      - "Unrestricted access for testing"
+      - "Debug logging enabled"
+  
+  staging:
+    description: "Staging environment"
+    features:
+      - "Production-like configuration"
+      - "Testing before production deployment"
+      - "Performance testing"
+  
+  prod:
+    description: "Production environment"
+    features:
+      - "High availability"
+      - "Auto-scaling enabled"
+      - "Monitoring and alerting"
