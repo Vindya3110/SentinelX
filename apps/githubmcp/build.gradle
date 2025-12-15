@@ -29,6 +29,17 @@ ext {
 }
 
 dependencies {
+
+    implementation platform('org.springframework.cloud:spring-cloud-dependencies:2023.0.3')
+    implementation platform(org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES)
+    implementation platform('com.google.cloud:spring-cloud-gcp-dependencies:6.2.2')
+
+    // https://mvnrepository.com/artifact/com.google.cloud/spring-cloud-gcp-starter-secretmanager
+    runtimeOnly("com.google.cloud:spring-cloud-gcp-starter-secretmanager:6.2.2")
+
+    // https://mvnrepository.com/artifact/com.google.cloud/google-cloud-secretmanager
+    implementation("com.google.cloud:google-cloud-secretmanager:2.66.0")
+
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springframework.ai:spring-ai-starter-mcp-server-webmvc'
 	compileOnly 'org.projectlombok:lombok'
