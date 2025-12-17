@@ -94,7 +94,7 @@ jobs:
             --max-instances=${{ vars.GITHUBMCP_MAX_INSTANCES || '10' }} \
             --timeout=${{ vars.GITHUBMCP_TIMEOUT || '300' }} \
             --service-account=github-actions@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com \
-            --set-env-vars SPRING_PROFILES_ACTIVE=stateless
+            --set-env-vars SPRING_PROFILES_ACTIVE=stateless \
             --project=${{ env.GCP_PROJECT_ID }}
 
       - name: Get Cloud Run service URL
