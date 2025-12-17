@@ -1,0 +1,42 @@
+# ShopVista Backend .gitignore
+
+# Gradle
+.gradle/
+build/
+gradle-app.setting
+!gradle-wrapper.jar
+!gradle-wrapper.properties
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+*.log
+
+# Maven (if used)
+.m2/
+target/
+
+# Java
+*.class
+*.jar
+*.war
+*.nar
+*.zip
+*.tar.gz
+*.rar
+
+# Spring Boot
+*.pid
+*.pid.lock
+
+# Environment
+.env
+.env.local
+
+# Test Coverage
+coverage/
+*.lcov

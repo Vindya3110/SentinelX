@@ -1,0 +1,64 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.5.8'
+	id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'io.vindhya'
+version = '0.0.1-SNAPSHOT'
+description = 'Gmail MCP Server for Spring Boot'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(21)
+	}
+}
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+ext {
+	set('springAiVersion', "1.1.2")
+}
+
+dependencies {
+
+    implementation platform('org.springframework.cloud:spring-cloud-dependencies:2023.0.3')
+    implementation platform(org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES)
+    implementation platform('com.google.cloud:spring-cloud-gcp-dependencies:6.2.2')
+
+    // https://mvnrepository.com/artifact/com.google.cloud/spring-cloud-gcp-starter-secretmanager
+    runtimeOnly("com.google.cloud:spring-cloud-gcp-starter-secretmanager:6.2.2")
+
+    // https://mvnrepository.com/artifact/com.google.cloud/google-cloud-secretmanager
+    implementation("com.google.cloud:google-cloud-secretmanager:2.66.0")
+
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.ai:spring-ai-starter-mcp-server-webmvc'
+	
+	// Gmail/Email dependencies
+	implementation 'javax.mail:javax.mail-api:1.6.2'
+	implementation 'com.sun.mail:javax.mail:1.6.2'
+	
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+dependencyManagement {
+	imports {
+		mavenBom "org.springframework.ai:spring-ai-bom:${springAiVersion}"
+	}
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}
