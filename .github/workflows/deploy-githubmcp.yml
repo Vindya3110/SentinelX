@@ -93,6 +93,7 @@ jobs:
             --min-instances=${{ vars.GITHUBMCP_MIN_INSTANCES || '0' }} \
             --max-instances=${{ vars.GITHUBMCP_MAX_INSTANCES || '10' }} \
             --timeout=${{ vars.GITHUBMCP_TIMEOUT || '300' }} \
+             --service-account=github-actions@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com \
             --project=${{ env.GCP_PROJECT_ID }}
 
       - name: Get Cloud Run service URL
