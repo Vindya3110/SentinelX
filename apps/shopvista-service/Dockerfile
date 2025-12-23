@@ -1,33 +1,37 @@
-# Stage 1: Build the application
-FROM eclipse-temurin:21-jdk as builder
-
+# Build stage
+FROM gradle:8.5-jdk21-alpine AS build
 WORKDIR /app
 
 # Copy gradle files
-COPY gradlew .
-COPY gradle/ gradle/
-COPY build.gradle .
-COPY settings.gradle .
+COPY build.gradle settings.gradle gradlew ./
+COPY gradle ./gradle
+
+# Download dependencies
+RUN ./gradlew dependencies --no-daemon || true
 
 # Copy source code
-COPY src/ src/
+COPY src ./src
 
-# Build the application
-RUN ./gradlew clean build -x test
+# Build application
+RUN ./gradlew clean bootJar --no-daemon
 
-# Stage 2: Create the final image
-FROM eclipse-temurin:21-jre
-
+# Runtime stage
+FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
-# Copy the built jar from builder stage
-COPY --from=builder /app/build/libs/shopvista-backend-*.jar app.jar
+# Create non-root user
+RUN addgroup -S spring && adduser -S spring -G spring
+USER spring:spring
 
-# Expose the port
+# Copy jar from build stage
+COPY --from=build /app/build/libs/*.jar app.jar
+
+# Expose port
 EXPOSE 8080
 
-# Set environment variables
-ENV SPRING_PROFILES_ACTIVE=production
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1
 
-# Run the application
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Run application
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]
