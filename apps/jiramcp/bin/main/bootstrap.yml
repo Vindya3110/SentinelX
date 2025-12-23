@@ -1,7 +1,0 @@
-spring.application.name: secretmanager
-
-spring:
-  cloud:
-    gcp:
-      secretmanager:
-        enabled: true
