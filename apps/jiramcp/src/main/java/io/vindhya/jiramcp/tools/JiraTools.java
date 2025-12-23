@@ -39,6 +39,9 @@ public class JiraTools {
     @Value("${jira.assignee}")
     private String assignee;
 
+    @Value("${jira.encoded.token}")
+    private String jiraEncodedToken;
+
     public JiraTools(RestTemplate restTemplate, ObjectMapper objectMapper) {
         this.restTemplate = restTemplate;
         this.objectMapper = objectMapper;
@@ -52,13 +55,29 @@ public class JiraTools {
             String description
     ) {
         try {
+            // Build ADF (Atlassian Document Format) description
+            Map<String, Object> descriptionContent = new HashMap<>();
+            descriptionContent.put("type", "doc");
+            descriptionContent.put("version", 1);
+            descriptionContent.put("content", java.util.List.of(
+                Map.of(
+                    "type", "paragraph",
+                    "content", java.util.List.of(
+                        Map.of(
+                            "type", "text",
+                            "text", description
+                        )
+                    )
+                )
+            ));
+
+            // Build fields
             Map<String, Object> fields = new HashMap<>();
             fields.put("project", Map.of("key", projectKey));
             fields.put("summary", summary);
-            fields.put("description", description);
+            fields.put("description", descriptionContent);
             fields.put("issuetype", Map.of("name", "Story"));
-            fields.put("customfield_10000", epicKey);
-            fields.put("assignee", Map.of("name", assignee));
+            fields.put("parent", Map.of("key", epicKey));
 
             Map<String, Object> issueData = new HashMap<>();
             issueData.put("fields", fields);
@@ -85,11 +104,9 @@ public class JiraTools {
     private HttpHeaders createHeaders() {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        
-        String auth = jiraEmail + ":" + jiraApiToken;
-        String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes());
-        headers.set("Authorization", "Basic " + encodedAuth);
-        
+        headers.set("Accept", MediaType.APPLICATION_JSON_VALUE);
+
+        headers.set("Authorization", "Basic " + jiraEncodedToken);
         return headers;
     }
 
