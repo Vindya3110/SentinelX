@@ -69,7 +69,7 @@ public class PubSubService {
 
         log.info("Trigger Called from Agent");
         chatService.converse(data);
-        log.info("Agent Triggered Successfully");
+        log.info("Agent Triggered Successfully with Logs");
 
     }
 }
