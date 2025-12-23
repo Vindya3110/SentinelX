@@ -10,7 +10,10 @@ on:
         options:
           - sentinelx
           - githubmcp
-          - both
+          - gmailmcp
+          - jiramcp
+          - shopvista
+          - all
       confirm:
         description: 'Type "DELETE" to confirm deletion'
         required: true
@@ -47,7 +50,7 @@ jobs:
         uses: google-github-actions/setup-gcloud@v2
 
       - name: Delete SentinelX Service
-        if: github.event.inputs.service == 'sentinelx' || github.event.inputs.service == 'both'
+        if: github.event.inputs.service == 'sentinelx' || github.event.inputs.service == 'all'
         run: |
           SERVICE_NAME="${{ vars.SENTINELX_SERVICE_NAME || 'sentinelx-service' }}"
           echo "Checking if service $SERVICE_NAME exists..."
@@ -68,7 +71,7 @@ jobs:
           fi
 
       - name: Delete GithubMCP Service
-        if: github.event.inputs.service == 'githubmcp' || github.event.inputs.service == 'both'
+        if: github.event.inputs.service == 'githubmcp' || github.event.inputs.service == 'all'
         run: |
           SERVICE_NAME="${{ vars.GITHUBMCP_SERVICE_NAME || 'githubmcp-service' }}"
           echo "Checking if service $SERVICE_NAME exists..."
@@ -84,6 +87,69 @@ jobs:
               --quiet
             
             echo "✅ GithubMCP service deleted successfully"
+          else
+            echo "⚠️  Service $SERVICE_NAME does not exist, skipping deletion"
+          fi
+
+      - name: Delete GmailMCP Service
+        if: github.event.inputs.service == 'gmailmcp' || github.event.inputs.service == 'all'
+        run: |
+          SERVICE_NAME="${{ vars.GMAILMCP_SERVICE_NAME || 'gmailmcp-service' }}"
+          echo "Checking if service $SERVICE_NAME exists..."
+          
+          if gcloud run services describe $SERVICE_NAME \
+            --region=${{ env.GCP_REGION }} \
+            --project=${{ env.GCP_PROJECT_ID }} &> /dev/null; then
+            
+            echo "Deleting GmailMCP service: $SERVICE_NAME"
+            gcloud run services delete $SERVICE_NAME \
+              --region=${{ env.GCP_REGION }} \
+              --project=${{ env.GCP_PROJECT_ID }} \
+              --quiet
+            
+            echo "✅ GmailMCP service deleted successfully"
+          else
+            echo "⚠️  Service $SERVICE_NAME does not exist, skipping deletion"
+          fi
+
+      - name: Delete JiraMCP Service
+        if: github.event.inputs.service == 'jiramcp' || github.event.inputs.service == 'all'
+        run: |
+          SERVICE_NAME="${{ vars.JIRAMCP_SERVICE_NAME || 'jiramcp-service' }}"
+          echo "Checking if service $SERVICE_NAME exists..."
+          
+          if gcloud run services describe $SERVICE_NAME \
+            --region=${{ env.GCP_REGION }} \
+            --project=${{ env.GCP_PROJECT_ID }} &> /dev/null; then
+            
+            echo "Deleting JiraMCP service: $SERVICE_NAME"
+            gcloud run services delete $SERVICE_NAME \
+              --region=${{ env.GCP_REGION }} \
+              --project=${{ env.GCP_PROJECT_ID }} \
+              --quiet
+            
+            echo "✅ JiraMCP service deleted successfully"
+          else
+            echo "⚠️  Service $SERVICE_NAME does not exist, skipping deletion"
+          fi
+
+      - name: Delete ShopVista Service
+        if: github.event.inputs.service == 'shopvista' || github.event.inputs.service == 'all'
+        run: |
+          SERVICE_NAME="${{ vars.SHOPVISTA_SERVICE_NAME || 'shopvista-service' }}"
+          echo "Checking if service $SERVICE_NAME exists..."
+          
+          if gcloud run services describe $SERVICE_NAME \
+            --region=${{ env.GCP_REGION }} \
+            --project=${{ env.GCP_PROJECT_ID }} &> /dev/null; then
+            
+            echo "Deleting ShopVista service: $SERVICE_NAME"
+            gcloud run services delete $SERVICE_NAME \
+              --region=${{ env.GCP_REGION }} \
+              --project=${{ env.GCP_PROJECT_ID }} \
+              --quiet
+            
+            echo "✅ ShopVista service deleted successfully"
           else
             echo "⚠️  Service $SERVICE_NAME does not exist, skipping deletion"
           fi
