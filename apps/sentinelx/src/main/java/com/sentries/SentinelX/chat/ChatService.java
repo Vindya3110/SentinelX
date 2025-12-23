@@ -10,11 +10,16 @@ import com.google.adk.tools.mcp.McpToolset;
 import com.google.adk.tools.mcp.StreamableHttpServerParameters;
 import com.google.genai.types.Content;
 import com.google.genai.types.Part;
+import com.sentries.SentinelX.pubsub.PubSubService;
 import io.reactivex.rxjava3.core.Flowable;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
+@RequiredArgsConstructor
 public class ChatService {
 
     @Value("${github.mcp.server.url}")
@@ -123,5 +128,32 @@ public class ChatService {
         });
 
         return response.toString();
+    }
+
+    public void converse(List<String> cloudLogs) {
+
+        String userId = "cloud-logs-user";
+        String question = "Analyze the following cloud logs and suggest necessary hotfixes:\n" + String.join("\n", cloudLogs);
+
+        StringBuilder response = new StringBuilder();
+
+
+        InMemoryRunner runner = new InMemoryRunner(ROOT_AGENT);
+
+        Session session = runner
+                .sessionService()
+                .createSession(runner.appName(), userId)
+                .blockingGet();
+
+        Content userMsg = Content.fromParts(Part.fromText(question));
+        Flowable<Event> events = runner.runAsync(session.userId(), session.id(), userMsg);
+
+        events.blockingForEach(event -> {
+            Content content = event.content().get();
+            if (content.parts().get().get(0).text().isPresent()) {
+                response.append(content.parts().get().get(0).text().get());
+            }
+        });
+
     }
 }
