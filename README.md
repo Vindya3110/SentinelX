@@ -188,7 +188,3 @@ Do not commit secrets. Add `.env` to `.gitignore` if you keep local copies.
 - App entrypoints (`SpringBootApplication`): `apps/*/src/main/java/**/*Application.java`
 - Workflows: `.github/workflows/`
 - Secrets usage: check `src/main/resources/*` and `bootstrap-gcp.yml` files for each app
-
----
-
-If you'd like, I can also add a `docker-compose.yml` for local multi-service orchestration or a `Taskfile.yml` (you already have one) with commands to start each app locally and in Docker. Let me know which you'd prefer next.
