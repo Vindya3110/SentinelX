@@ -1,7 +1,0 @@
-spring.application.name: shopvista-backend
-
-spring:
-  cloud:
-    gcp:
-      secretmanager:
-        enabled: true
