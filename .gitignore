@@ -3,3 +3,11 @@
 .gradle
 build
 bin
+
+# Environment variables (local development)
+.env
+*.env
+!.env.example
+
+# Docker volumes
+postgres_data/
