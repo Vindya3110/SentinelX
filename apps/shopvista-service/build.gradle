@@ -1,0 +1,67 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.5.6'
+	id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.shopvista'
+version = '0.0.1-SNAPSHOT'
+description = 'ShopVista Backend - E-commerce Platform'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(21)
+	}
+}
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+    implementation platform('org.springframework.cloud:spring-cloud-dependencies:2023.0.3')
+    implementation platform(org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES)
+    implementation platform('com.google.cloud:spring-cloud-gcp-dependencies:6.2.2')
+
+    // https://mvnrepository.com/artifact/com.google.cloud/spring-cloud-gcp-starter-secretmanager
+    runtimeOnly("com.google.cloud:spring-cloud-gcp-starter-secretmanager:6.2.2")
+
+    // https://mvnrepository.com/artifact/com.google.cloud/google-cloud-secretmanager
+    implementation("com.google.cloud:google-cloud-secretmanager:2.66.0")
+
+    // https://mvnrepository.com/artifact/org.springframework.cloud/spring-cloud-starter-bootstrap
+    implementation("org.springframework.cloud:spring-cloud-starter-bootstrap:4.3.0")
+
+	// Spring Boot Web
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	
+	// Spring Data JPA
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	
+	// PostgreSQL Driver
+	implementation 'org.postgresql:postgresql:42.7.1'
+	
+	// Lombok
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+	
+	// Testing
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	
+	// Validation
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	
+	// Jackson for JSON processing
+	implementation 'com.fasterxml.jackson.core:jackson-databind'
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}

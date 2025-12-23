@@ -15,6 +15,7 @@ This directory contains GitHub Actions workflows for building, testing, and depl
 ### 2. Deploy SentinelX (`deploy-sentinelx.yml`)
 - **Trigger**: Manual (workflow_dispatch)
 - **Purpose**: Builds and deploys SentinelX application to Cloud Run
+- **Port**: 8081
 - **Branch Selection**: Deploy any branch to production
 - **Actions**:
   - Builds application with Gradle
@@ -25,6 +26,7 @@ This directory contains GitHub Actions workflows for building, testing, and depl
 ### 3. Deploy GithubMCP (`deploy-githubmcp.yml`)
 - **Trigger**: Manual (workflow_dispatch)
 - **Purpose**: Builds and deploys GithubMCP application to Cloud Run
+- **Port**: 8080
 - **Branch Selection**: Deploy any branch to production
 - **Actions**:
   - Builds application with Gradle
@@ -32,10 +34,45 @@ This directory contains GitHub Actions workflows for building, testing, and depl
   - Pushes to Artifact Registry
   - Deploys to Cloud Run (unauthenticated access)
 
-### 4. Delete Cloud Run Services (`delete-services.yml`)
+### 4. Deploy GmailMCP (`deploy-gmailmcp.yml`)
+- **Trigger**: Manual (workflow_dispatch)
+- **Purpose**: Builds and deploys GmailMCP application to Cloud Run
+- **Port**: 8083
+- **Branch Selection**: Deploy any branch to production
+- **Actions**:
+  - Builds application with Gradle
+  - Creates Docker image
+  - Pushes to Artifact Registry
+  - Deploys to Cloud Run (unauthenticated access)
+
+### 5. Deploy JiraMCP (`deploy-jiramcp.yml`)
+- **Trigger**: Manual (workflow_dispatch)
+- **Purpose**: Builds and deploys JiraMCP application to Cloud Run
+- **Port**: 8080
+- **Branch Selection**: Deploy any branch to production
+- **Actions**:
+  - Builds application with Gradle
+  - Creates Docker image
+  - Pushes to Artifact Registry
+  - Deploys to Cloud Run (unauthenticated access)
+
+### 6. Deploy ShopVista (`deploy-shopvista.yml`)
+- **Trigger**: Manual (workflow_dispatch)
+- **Purpose**: Builds and deploys ShopVista Service to Cloud Run
+- **Port**: 8080
+- **Database**: PostgreSQL (Cloud SQL)
+- **Branch Selection**: Deploy any branch to production
+- **Actions**:
+  - Builds application with Gradle
+  - Creates Docker image
+  - Pushes to Artifact Registry
+  - Deploys to Cloud Run with Cloud SQL connection
+  - Configured with higher resources (1Gi memory, 2 CPU)
+
+### 7. Delete Cloud Run Services (`delete-services.yml`)
 - **Trigger**: Manual (workflow_dispatch)
 - **Purpose**: Safely delete Cloud Run services
-- **Options**: Delete SentinelX, GithubMCP, or both
+- **Options**: Delete SentinelX, GithubMCP, GmailMCP, JiraMCP, ShopVista, or all
 - **Safety**: Requires typing "DELETE" to confirm
 - **Actions**:
   - Validates confirmation
@@ -82,6 +119,41 @@ Set these in: **Settings → Secrets and variables → Actions → Variables**
 | `GITHUBMCP_MIN_INSTANCES` | `0` | Minimum instances |
 | `GITHUBMCP_MAX_INSTANCES` | `10` | Maximum instances |
 | `GITHUBMCP_TIMEOUT` | `300` | Request timeout (seconds) |
+
+#### GmailMCP Variables
+| Variable Name | Default | Description |
+|--------------|---------|-------------|
+| `GMAILMCP_SERVICE_NAME` | `gmailmcp-service` | Cloud Run service name |
+| `GMAILMCP_MEMORY` | `512Mi` | Memory allocation |
+| `GMAILMCP_CPU` | `1` | CPU allocation |
+| `GMAILMCP_MIN_INSTANCES` | `0` | Minimum instances |
+| `GMAILMCP_MAX_INSTANCES` | `10` | Maximum instances |
+| `GMAILMCP_TIMEOUT` | `300` | Request timeout (seconds) |
+
+#### JiraMCP Variables
+| Variable Name | Default | Description |
+|--------------|---------|-------------|
+| `JIRAMCP_SERVICE_NAME` | `jiramcp-service` | Cloud Run service name |
+| `JIRAMCP_MEMORY` | `512Mi` | Memory allocation |
+| `JIRAMCP_CPU` | `1` | CPU allocation |
+| `JIRAMCP_MIN_INSTANCES` | `0` | Minimum instances |
+| `JIRAMCP_MAX_INSTANCES` | `10` | Maximum instances |
+| `JIRAMCP_TIMEOUT` | `300` | Request timeout (seconds) |
+
+#### ShopVista Variables
+| Variable Name | Default | Description |
+|--------------|---------|-------------|
+| `SHOPVISTA_SERVICE_NAME` | `shopvista-service` | Cloud Run service name |
+| `SHOPVISTA_MEMORY` | `1Gi` | Memory allocation (higher for database) |
+| `SHOPVISTA_CPU` | `2` | CPU allocation (higher for database) |
+| `SHOPVISTA_MIN_INSTANCES` | `0` | Minimum instances |
+| `SHOPVISTA_MAX_INSTANCES` | `10` | Maximum instances |
+| `SHOPVISTA_TIMEOUT` | `300` | Request timeout (seconds) |
+
+#### ShopVista-Specific Secrets
+| Secret Name | Description | Example |
+|------------|-------------|---------|
+| `CLOUDSQL_INSTANCE_CONNECTION_NAME` | Cloud SQL instance connection name | `sentinalx:us-central1:shopvista-db` |
 
 ## Quick Start
 
@@ -130,12 +202,27 @@ Add the secrets output from the setup script to your GitHub repository.
 ┌─────────────────────┐
 │   Cloud Run         │
 │   ┌──────────────┐  │
-│   │  SentinelX   │  │
+│   │  SentinelX   │  │ :8081
 │   └──────────────┘  │
 │   ┌──────────────┐  │
-│   │  GithubMCP   │  │
+│   │  GithubMCP   │  │ :8080
 │   └──────────────┘  │
-└─────────────────────┘
+│   ┌──────────────┐  │
+│   │  GmailMCP    │  │ :8083
+│   └──────────────┘  │
+│   ┌──────────────┐  │
+│   │  JiraMCP     │  │ :8080
+│   └──────────────┘  │
+│   ┌──────────────┐  │
+│   │  ShopVista   │  │ :8080
+│   └──────┬───────┘  │
+└──────────┼──────────┘
+           │
+           ▼
+    ┌─────────────┐
+    │  Cloud SQL  │
+    │ (PostgreSQL)│
+    └─────────────┘
          │
          ▼
 ┌─────────────────────┐
@@ -152,7 +239,13 @@ To delete a Cloud Run service:
 1. Go to **Actions** tab
 2. Select **Delete Cloud Run Services** workflow
 3. Click **Run workflow**
-4. Select which service to delete (sentinelx, githubmcp, or both)
+4. Select which service to delete:
+   - `sentinelx` - Delete only SentinelX
+   - `githubmcp` - Delete only GithubMCP
+   - `gmailmcp` - Delete only GmailMCP
+   - `jiramcp` - Delete only JiraMCP
+   - `shopvista` - Delete only ShopVista
+   - `all` - Delete all services
 5. Type **DELETE** in the confirmation field
 6. Click **Run workflow** button
 

@@ -96,6 +96,7 @@ jobs:
             --set-env-vars="SPRING_PROFILES_ACTIVE=prod" \
             --set-env-vars="SPRING_CLOUD_GCP_PROJECT_ID=${{ env.GCP_PROJECT_ID }}" \
             --service-account=github-actions@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com \
+            --set-env-vars SPRING_PROFILES_ACTIVE=stateless \
             --project=${{ env.GCP_PROJECT_ID }}
 
       - name: Get Cloud Run service URL

@@ -1,0 +1,413 @@
+version: '3'
+
+# SentinelX Taskfile
+# Task runner for managing all microservices locally and in Docker
+# Install Task: https://taskfile.dev
+
+vars:
+  SENTINELX_PORT: 8081
+  GITHUBMCP_PORT: 8080
+  GMAILMCP_PORT: 8083
+  JIRAMCP_PORT: 8084
+  SHOPVISTA_PORT: 8082
+  POSTGRES_PORT: 5432
+
+tasks:
+  default:
+    desc: Show all available tasks
+    cmds:
+      - task --list
+
+  # ============================================
+  # LOCAL DEVELOPMENT TASKS
+  # ============================================
+
+  local:all:
+    desc: Start all services locally (in parallel)
+    deps: [local:postgres]
+    cmds:
+      - echo "Starting all services locally..."
+      - task: local:sentinelx &
+      - task: local:githubmcp &
+      - task: local:gmailmcp &
+      - task: local:jiramcp &
+      - task: local:shopvista &
+      - wait
+
+  local:sentinelx:
+    desc: Start SentinelX locally (AI GitHub Agent) on port 8081
+    dir: apps/sentinelx
+    cmds:
+      - echo "Starting SentinelX on port {{.SENTINELX_PORT}}..."
+      - ./gradlew bootRun --no-daemon
+
+  local:githubmcp:
+    desc: Start GithubMCP locally (GitHub MCP Server) on port 8080
+    dir: apps/githubmcp
+    cmds:
+      - echo "Starting GithubMCP on port {{.GITHUBMCP_PORT}}..."
+      - ./gradlew bootRun --no-daemon --args='--spring.profiles.active=stateless'
+
+  local:gmailmcp:
+    desc: Start GmailMCP locally (Gmail MCP Server) on port 8083
+    dir: apps/gmailmcp
+    cmds:
+      - echo "Starting GmailMCP on port {{.GMAILMCP_PORT}}..."
+      - ./gradlew bootRun --no-daemon --args='--spring.profiles.active=stateless'
+
+  local:jiramcp:
+    desc: Start JiraMCP locally (Jira MCP Server) on port 8084
+    dir: apps/jiramcp
+    cmds:
+      - echo "Starting JiraMCP on port {{.JIRAMCP_PORT}}..."
+      - ./gradlew bootRun --no-daemon --args='--spring.profiles.active=stateless'
+
+  local:shopvista:
+    desc: Start ShopVista locally (E-commerce Backend) on port 8082
+    dir: apps/shopvista-service
+    deps: [local:postgres]
+    cmds:
+      - echo "Starting ShopVista on port {{.SHOPVISTA_PORT}}..."
+      - ./gradlew bootRun --no-daemon --args='--server.port={{.SHOPVISTA_PORT}}'
+
+  local:postgres:
+    desc: Start PostgreSQL in Docker for ShopVista
+    cmds:
+      - |
+        if ! docker ps | grep -q shopvista-postgres; then
+          echo "Starting PostgreSQL container..."
+          docker run -d \
+            --name shopvista-postgres \
+            -e POSTGRES_DB=shopvista \
+            -e POSTGRES_USER=postgres \
+            -e POSTGRES_PASSWORD=postgres \
+            -p {{.POSTGRES_PORT}}:5432 \
+            postgres:15-alpine
+          echo "Waiting for PostgreSQL to be ready..."
+          sleep 5
+        else
+          echo "PostgreSQL is already running"
+        fi
+
+  local:stop:
+    desc: Stop all locally running processes (kills Java processes)
+    cmds:
+      - echo "Stopping all local services..."
+      - pkill -f "bootRun" || true
+      - docker stop shopvista-postgres || true
+      - echo "All local services stopped"
+
+  # ============================================
+  # BUILD TASKS
+  # ============================================
+
+  build:all:
+    desc: Build all services
+    cmds:
+      - task: build:sentinelx
+      - task: build:githubmcp
+      - task: build:gmailmcp
+      - task: build:jiramcp
+      - task: build:shopvista
+
+  build:sentinelx:
+    desc: Build SentinelX
+    dir: apps/sentinelx
+    cmds:
+      - echo "Building SentinelX..."
+      - ./gradlew clean build --no-daemon
+
+  build:githubmcp:
+    desc: Build GithubMCP
+    dir: apps/githubmcp
+    cmds:
+      - echo "Building GithubMCP..."
+      - ./gradlew clean build --no-daemon
+
+  build:gmailmcp:
+    desc: Build GmailMCP
+    dir: apps/gmailmcp
+    cmds:
+      - echo "Building GmailMCP..."
+      - ./gradlew clean build --no-daemon
+
+  build:jiramcp:
+    desc: Build JiraMCP
+    dir: apps/jiramcp
+    cmds:
+      - echo "Building JiraMCP..."
+      - ./gradlew clean build --no-daemon
+
+  build:shopvista:
+    desc: Build ShopVista
+    dir: apps/shopvista-service
+    cmds:
+      - echo "Building ShopVista..."
+      - ./gradlew clean build --no-daemon
+
+  # ============================================
+  # DOCKER TASKS
+  # ============================================
+
+  docker:up:
+    desc: Start all services in Docker using docker-compose
+    cmds:
+      - echo "Starting all services in Docker..."
+      - docker-compose up -d
+      - echo "All services started!"
+      - echo ""
+      - task: docker:status
+
+  docker:up:build:
+    desc: Build and start all services in Docker
+    cmds:
+      - echo "Building and starting all services in Docker..."
+      - docker-compose up -d --build
+      - echo "All services started!"
+      - echo ""
+      - task: docker:status
+
+  docker:down:
+    desc: Stop all Docker services
+    cmds:
+      - echo "Stopping all Docker services..."
+      - docker-compose down
+      - echo "All services stopped"
+
+  docker:down:clean:
+    desc: Stop all Docker services and remove volumes
+    cmds:
+      - echo "Stopping all Docker services and removing volumes..."
+      - docker-compose down -v
+      - echo "All services stopped and volumes removed"
+
+  docker:logs:
+    desc: Show logs for all Docker services
+    cmds:
+      - docker-compose logs -f
+
+  docker:logs:sentinelx:
+    desc: Show logs for SentinelX
+    cmds:
+      - docker-compose logs -f sentinelx
+
+  docker:logs:githubmcp:
+    desc: Show logs for GithubMCP
+    cmds:
+      - docker-compose logs -f githubmcp
+
+  docker:logs:gmailmcp:
+    desc: Show logs for GmailMCP
+    cmds:
+      - docker-compose logs -f gmailmcp
+
+  docker:logs:jiramcp:
+    desc: Show logs for JiraMCP
+    cmds:
+      - docker-compose logs -f jiramcp
+
+  docker:logs:shopvista:
+    desc: Show logs for ShopVista
+    cmds:
+      - docker-compose logs -f shopvista
+
+  docker:restart:
+    desc: Restart all Docker services
+    cmds:
+      - docker-compose restart
+
+  docker:status:
+    desc: Show status of all Docker services
+    cmds:
+      - echo "Docker Services Status:"
+      - echo "======================="
+      - docker-compose ps
+      - echo ""
+      - echo "Service URLs:"
+      - echo "  SentinelX:   http://localhost:{{.SENTINELX_PORT}}"
+      - echo "  GithubMCP:   http://localhost:{{.GITHUBMCP_PORT}}"
+      - echo "  GmailMCP:    http://localhost:{{.GMAILMCP_PORT}}"
+      - echo "  JiraMCP:     http://localhost:{{.JIRAMCP_PORT}}"
+      - echo "  ShopVista:   http://localhost:{{.SHOPVISTA_PORT}}"
+      - echo "  PostgreSQL:  localhost:{{.POSTGRES_PORT}}"
+
+  # ============================================
+  # DOCKER BUILD TASKS
+  # ============================================
+
+  docker:build:all:
+    desc: Build all Docker images
+    cmds:
+      - echo "Building all Docker images..."
+      - docker-compose build
+      - echo "All images built successfully!"
+
+  docker:build:sentinelx:
+    desc: Build SentinelX Docker image
+    cmds:
+      - docker-compose build sentinelx
+
+  docker:build:githubmcp:
+    desc: Build GithubMCP Docker image
+    cmds:
+      - docker-compose build githubmcp
+
+  docker:build:gmailmcp:
+    desc: Build GmailMCP Docker image
+    cmds:
+      - docker-compose build gmailmcp
+
+  docker:build:jiramcp:
+    desc: Build JiraMCP Docker image
+    cmds:
+      - docker-compose build jiramcp
+
+  docker:build:shopvista:
+    desc: Build ShopVista Docker image
+    cmds:
+      - docker-compose build shopvista
+
+  # ============================================
+  # TEST TASKS
+  # ============================================
+
+  test:all:
+    desc: Run tests for all services
+    cmds:
+      - task: test:sentinelx
+      - task: test:githubmcp
+      - task: test:gmailmcp
+      - task: test:jiramcp
+      - task: test:shopvista
+
+  test:sentinelx:
+    desc: Run SentinelX tests
+    dir: apps/sentinelx
+    cmds:
+      - ./gradlew test --no-daemon
+
+  test:githubmcp:
+    desc: Run GithubMCP tests
+    dir: apps/githubmcp
+    cmds:
+      - ./gradlew test --no-daemon
+
+  test:gmailmcp:
+    desc: Run GmailMCP tests
+    dir: apps/gmailmcp
+    cmds:
+      - ./gradlew test --no-daemon
+
+  test:jiramcp:
+    desc: Run JiraMCP tests
+    dir: apps/jiramcp
+    cmds:
+      - ./gradlew test --no-daemon
+
+  test:shopvista:
+    desc: Run ShopVista tests
+    dir: apps/shopvista-service
+    cmds:
+      - ./gradlew test --no-daemon
+
+  # ============================================
+  # CLEAN TASKS
+  # ============================================
+
+  clean:all:
+    desc: Clean all build artifacts
+    cmds:
+      - task: clean:sentinelx
+      - task: clean:githubmcp
+      - task: clean:gmailmcp
+      - task: clean:jiramcp
+      - task: clean:shopvista
+
+  clean:sentinelx:
+    desc: Clean SentinelX build artifacts
+    dir: apps/sentinelx
+    cmds:
+      - ./gradlew clean --no-daemon
+
+  clean:githubmcp:
+    desc: Clean GithubMCP build artifacts
+    dir: apps/githubmcp
+    cmds:
+      - ./gradlew clean --no-daemon
+
+  clean:gmailmcp:
+    desc: Clean GmailMCP build artifacts
+    dir: apps/gmailmcp
+    cmds:
+      - ./gradlew clean --no-daemon
+
+  clean:jiramcp:
+    desc: Clean JiraMCP build artifacts
+    dir: apps/jiramcp
+    cmds:
+      - ./gradlew clean --no-daemon
+
+  clean:shopvista:
+    desc: Clean ShopVista build artifacts
+    dir: apps/shopvista-service
+    cmds:
+      - ./gradlew clean --no-daemon
+
+  # ============================================
+  # UTILITY TASKS
+  # ============================================
+
+  status:
+    desc: Show status of all services (local and Docker)
+    cmds:
+      - echo "Checking service status..."
+      - echo ""
+      - echo "Local Services (checking ports):"
+      - echo "================================"
+      - lsof -i :{{.SENTINELX_PORT}} | grep LISTEN || echo "  SentinelX ({{.SENTINELX_PORT}}): Not running"
+      - lsof -i :{{.GITHUBMCP_PORT}} | grep LISTEN || echo "  GithubMCP ({{.GITHUBMCP_PORT}}): Not running"
+      - lsof -i :{{.GMAILMCP_PORT}} | grep LISTEN || echo "  GmailMCP ({{.GMAILMCP_PORT}}): Not running"
+      - lsof -i :{{.JIRAMCP_PORT}} | grep LISTEN || echo "  JiraMCP ({{.JIRAMCP_PORT}}): Not running"
+      - lsof -i :{{.SHOPVISTA_PORT}} | grep LISTEN || echo "  ShopVista ({{.SHOPVISTA_PORT}}): Not running"
+      - echo ""
+      - echo "Docker Services:"
+      - echo "================"
+      - docker ps --filter "name=sentinelx" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" || echo "No Docker services running"
+
+  health:
+    desc: Check health of all running services
+    cmds:
+      - echo "Checking service health..."
+      - echo ""
+      - curl -s http://localhost:{{.SENTINELX_PORT}}/actuator/health || echo "SentinelX: Not responding"
+      - curl -s http://localhost:{{.GITHUBMCP_PORT}}/actuator/health || echo "GithubMCP: Not responding"
+      - curl -s http://localhost:{{.GMAILMCP_PORT}}/actuator/health || echo "GmailMCP: Not responding"
+      - curl -s http://localhost:{{.JIRAMCP_PORT}}/actuator/health || echo "JiraMCP: Not responding"
+      - curl -s http://localhost:{{.SHOPVISTA_PORT}}/actuator/health || echo "ShopVista: Not responding"
+
+  setup:
+    desc: Initial setup - make all gradlew scripts executable
+    cmds:
+      - echo "Making all gradlew scripts executable..."
+      - chmod +x apps/sentinelx/gradlew
+      - chmod +x apps/githubmcp/gradlew
+      - chmod +x apps/gmailmcp/gradlew
+      - chmod +x apps/jiramcp/gradlew
+      - chmod +x apps/shopvista-service/gradlew
+      - echo "Setup complete!"
+
+  install:
+    desc: Install Task runner (if not installed)
+    cmds:
+      - |
+        if ! command -v task &> /dev/null; then
+          echo "Installing Task runner..."
+          if [[ "$OSTYPE" == "darwin"* ]]; then
+            brew install go-task/tap/go-task
+          else
+            sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d
+          fi
+        else
+          echo "Task is already installed"
+          task --version
+        fi

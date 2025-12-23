@@ -1,74 +1,74 @@
-package com.sentries.SentinelX.tools;
+package io.vindhya.githubmcp.tools;
 
-
-import com.google.adk.tools.Annotations.Schema;
-import com.sentries.SentinelX.secret.SecretConfig;
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springaicommunity.mcp.annotation.McpTool;
+import org.springaicommunity.mcp.annotation.McpToolParam;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Map;
 
-@Service
-@RequiredArgsConstructor
+@Component
 @Slf4j
+@RequiredArgsConstructor
 public class GithubTools {
 
+    @Value("${github.pat}")
+    private String gitToken;
 
-     private final SecretConfig secretConfig;
+    @Value("${github.userId}")
+    private String gitOwner;
 
-    private final static RestTemplate restTemplate = new RestTemplate();
+    @Value("${app.tool.repoName}")
+    private String repoName;
 
-    private static String gitToken;
+    private final RestTemplate restTemplate = new RestTemplate();
 
-    private static String gitOwner;
-
-    private static String repoName;
-
-
-
-     @PostConstruct
-    public void init(){
-        
-        gitToken = secretConfig.getGithubToken();
-        gitOwner = secretConfig.getGithubOwner();
-        repoName = secretConfig.getRepoName();
-    }
-
-   
-
-    private static HttpHeaders getHeaders() {
+    private HttpHeaders getHeaders() {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", "token " + gitToken);
         headers.set("Accept", "application/vnd.github.v3+json");
         return headers;
     }
 
-    public static Map<String,String> createBranch(
-            @Schema(description = "branch name to be created")
+    @McpTool(description = "Create a new branch in the GitHub repository")
+    public Map<String, String> createBranch(
+            @McpToolParam(description = "Name of the branch to be created")
             String branchName
     ) {
         log.info("Creating branch {}", branchName);
 
-        String orgName = gitOwner; // Replace with your organization name
+        String orgName = gitOwner;
 
         // Get repo info to find default branch
         String repoUrl = "https://api.github.com/repos/" + orgName + "/" + repoName;
         HttpEntity<String> repoEntity = new HttpEntity<>(getHeaders());
-        ResponseEntity<Map> repoResponse = restTemplate.exchange(repoUrl, HttpMethod.GET, repoEntity, Map.class);
+        ResponseEntity<Map<String, Object>> repoResponse = restTemplate.exchange(
+                repoUrl,
+                HttpMethod.GET,
+                repoEntity,
+                new ParameterizedTypeReference<Map<String, Object>>() {}
+        );
         String defaultBranch = (String) repoResponse.getBody().get("default_branch");
 
         // Get default branch SHA
         String refUrl = repoUrl + "/git/refs/heads/" + defaultBranch;
         HttpEntity<String> getEntity = new HttpEntity<>(getHeaders());
-        ResponseEntity<Map> refResponse = restTemplate.exchange(refUrl, HttpMethod.GET, getEntity, Map.class);
-        String sha = (String) ((Map) refResponse.getBody().get("object")).get("sha");
+        ResponseEntity<Map<String, Object>> refResponse = restTemplate.exchange(
+                refUrl,
+                HttpMethod.GET,
+                getEntity,
+                new ParameterizedTypeReference<Map<String, Object>>() {}
+        );
+        @SuppressWarnings("unchecked")
+        String sha = (String) ((Map<String, Object>) refResponse.getBody().get("object")).get("sha");
 
         // Create branch
         String url = repoUrl + "/git/refs";
@@ -77,20 +77,26 @@ public class GithubTools {
                 "sha", sha
         );
 
-        HttpEntity<Map> entity = new HttpEntity<>(body, getHeaders());
-        ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, entity, Map.class);
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, getHeaders());
+        restTemplate.exchange(
+                url,
+                HttpMethod.POST,
+                entity,
+                new ParameterizedTypeReference<Map<String, Object>>() {}
+        );
         return Map.of(
                 "branchName", branchName,
                 "message", "Branch created successfully"
         );
     }
 
-    public static Map<String, String> createPullRequest(
-            @Schema(description = "branch name for which PR needs to be created")
+    @McpTool(description = "Create a pull request in the GitHub repository")
+    public Map<String, String> createPullRequest(
+            @McpToolParam(description = "Branch name for which PR needs to be created")
             String branchName,
-            @Schema(description = "title of the pull request")
+            @McpToolParam(description = "Title of the pull request")
             String title,
-            @Schema(description = "description of the changes")
+            @McpToolParam(description = "Description of the changes")
             String description
     ) {
         log.info("Creating pull request for branch {}", branchName);
@@ -100,7 +106,12 @@ public class GithubTools {
         // Get repo info to find default branch
         String repoUrl = "https://api.github.com/repos/" + orgName + "/" + repoName;
         HttpEntity<String> repoEntity = new HttpEntity<>(getHeaders());
-        ResponseEntity<Map> repoResponse = restTemplate.exchange(repoUrl, HttpMethod.GET, repoEntity, Map.class);
+        ResponseEntity<Map<String, Object>> repoResponse = restTemplate.exchange(
+                repoUrl,
+                HttpMethod.GET,
+                repoEntity,
+                new ParameterizedTypeReference<Map<String, Object>>() {}
+        );
         String defaultBranch = (String) repoResponse.getBody().get("default_branch");
 
         // Create pull request
@@ -112,8 +123,13 @@ public class GithubTools {
                 "base", defaultBranch
         );
 
-        HttpEntity<Map> entity = new HttpEntity<>(body, getHeaders());
-        ResponseEntity<Map> response = restTemplate.exchange(prUrl, HttpMethod.POST, entity, Map.class);
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, getHeaders());
+        ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                prUrl,
+                HttpMethod.POST,
+                entity,
+                new ParameterizedTypeReference<Map<String, Object>>() {}
+        );
 
         return Map.of(
                 "pullRequestUrl", (String) response.getBody().get("html_url"),
@@ -121,12 +137,13 @@ public class GithubTools {
         );
     }
 
-    public static Map<String, String> mergePullRequest(
-            @Schema(description = "pull request number")
+    @McpTool(description = "Merge a pull request in the GitHub repository")
+    public Map<String, String> mergePullRequest(
+            @McpToolParam(description = "Pull request number")
             int prNumber,
-            @Schema(description = "commit message for the merge")
+            @McpToolParam(description = "Commit message for the merge")
             String commitMessage,
-            @Schema(description = "merge method: merge, squash, or rebase")
+            @McpToolParam(description = "Merge method: merge, squash, or rebase")
             String mergeMethod
     ) {
         log.info("Merging pull request {}", prNumber);
@@ -141,8 +158,13 @@ public class GithubTools {
                 "merge_method", mergeMethod.toLowerCase()
         );
 
-        HttpEntity<Map> entity = new HttpEntity<>(body, getHeaders());
-        ResponseEntity<Map> response = restTemplate.exchange(mergeUrl, HttpMethod.PUT, entity, Map.class);
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, getHeaders());
+        ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                mergeUrl,
+                HttpMethod.PUT,
+                entity,
+                new ParameterizedTypeReference<Map<String, Object>>() {}
+        );
 
         return Map.of(
                 "message", "Pull request merged successfully",
@@ -150,8 +172,9 @@ public class GithubTools {
         );
     }
 
-    public static Map<String, String> getFileContent(
-            @Schema(description = "path of the file in the repository")
+    @McpTool(description = "Get file content from the GitHub repository")
+    public Map<String, String> getFileContent(
+            @McpToolParam(description = "Path of the file in the repository")
             String filePath
     ) {
         log.info("Fetching file content for path: {}", filePath);
@@ -159,13 +182,18 @@ public class GithubTools {
         String orgName = gitOwner;
         String url = String.format(
                 "https://api.github.com/repos/%s/%s/contents/%s",
-                orgName, "order-service", filePath
+                orgName, repoName, filePath
         );
 
         HttpEntity<String> entity = new HttpEntity<>(getHeaders());
-        ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
+        ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                url,
+                HttpMethod.GET,
+                entity,
+                new ParameterizedTypeReference<Map<String, Object>>() {}
+        );
 
-        Map body = response.getBody();
+        Map<String, Object> body = response.getBody();
         String content = (String) body.get("content");
         String encoding = (String) body.get("encoding");
 
@@ -182,25 +210,31 @@ public class GithubTools {
         );
     }
 
-    public static Map<String, String> updateFileContent(
-            @Schema(description = "path of the file in the repository")
+    @McpTool(description = "Update file content in the GitHub repository")
+    public Map<String, String> updateFileContent(
+            @McpToolParam(description = "Path of the file in the repository")
             String filePath,
-            @Schema(description = "branch name to update the file in")
+            @McpToolParam(description = "Branch name to update the file in")
             String branchName,
-            @Schema(description = "commit message")
+            @McpToolParam(description = "Commit message")
             String commitMessage,
-            @Schema(description = "new file content")
+            @McpToolParam(description = "New file content")
             String newContent
     ) {
         log.info("Updating file content for path: {}", filePath);
         String orgName = gitOwner;
         String url = String.format(
                 "https://api.github.com/repos/%s/%s/contents/%s",
-                orgName, "order-service" , filePath
+                orgName, repoName, filePath
         );
 
         HttpEntity<String> getEntity = new HttpEntity<>(getHeaders());
-        ResponseEntity<Map> getResponse = restTemplate.exchange(url + "?ref=" + branchName, HttpMethod.GET, getEntity, Map.class);
+        ResponseEntity<Map<String, Object>> getResponse = restTemplate.exchange(
+                url + "?ref=" + branchName,
+                HttpMethod.GET,
+                getEntity,
+                new ParameterizedTypeReference<Map<String, Object>>() {}
+        );
         String sha = (String) getResponse.getBody().get("sha");
 
         String base64Content = java.util.Base64.getEncoder().encodeToString(newContent.getBytes());
@@ -213,11 +247,15 @@ public class GithubTools {
         );
 
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, getHeaders());
-        ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.PUT, entity, Map.class);
+        restTemplate.exchange(
+                url,
+                HttpMethod.PUT,
+                entity,
+                new ParameterizedTypeReference<Map<String, Object>>() {}
+        );
 
         return Map.of(
                 "message", "File updated successfully"
         );
     }
 }
-

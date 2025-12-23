@@ -1,0 +1,6 @@
+spring:
+  cloud:
+    gcp:
+      secretmanager:
+        enabled: true
+        legacy: false
