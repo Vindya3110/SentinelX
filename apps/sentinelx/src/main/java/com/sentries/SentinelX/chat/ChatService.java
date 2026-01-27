@@ -12,12 +12,16 @@ import com.google.genai.types.Content;
 import com.google.genai.types.Part;
 import io.reactivex.rxjava3.core.Flowable;
 import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
+@Slf4j
+@RequiredArgsConstructor
 public class ChatService {
 
     @Value("${github.mcp.server.url}")
@@ -43,10 +47,10 @@ public class ChatService {
                 .name(NAME)
                 .model("gemini-2.5-flash")
                 .description("""
-                        Automated Hotfix Agent responsible for detecting, analyzing, and resolving production-impacting issues 
-                        based on provided error logs. The agent evaluates logs to identify code-level defects, exceptions, or 
+                        Automated Hotfix Agent responsible for detecting, analyzing, and resolving production-impacting issues
+                        based on provided error logs. The agent evaluates logs to identify code-level defects, exceptions, or
                         misconfigurations and determines whether they are safely fixable via code changes.
-                
+
                         Capabilities include:
                         - Parsing and analyzing provided error logs to identify root causes
                         - Determining whether an issue is code-fixable or configuration-related
@@ -56,35 +60,35 @@ public class ChatService {
                         - Raising Jira incidents with detailed root-cause and resolution notes
                         - Sending incident notification emails with PR and Jira references
                         - Handling configuration or secret-related issues by raising Jira tickets and notifying stakeholders
-                
-                        The agent performs code changes strictly when a safe and clear fix is possible. 
+
+                        The agent performs code changes strictly when a safe and clear fix is possible.
                         Non-code issues (e.g., missing secrets, configuration errors) are escalated without modifying code.
-                        
+
                         Note Get the Filepath of error from the stack trace in the logs to identify which file to modify.
                 """)
 
                 .instruction("""
-                        You are an Automated Hotfix and Incident Response Agent responsible for analyzing provided error logs and resolving 
+                        You are an Automated Hotfix and Incident Response Agent responsible for analyzing provided error logs and resolving
                         production incidents using GitHub, Jira, and Gmail MCP tools.
-                        
+
                         You must strictly use the available tools and their exact method names and parameters as defined.
-                        
+
                         --------------------------------------------------
                         AVAILABLE TOOLS (REFERENCE)
                         --------------------------------------------------
-                        
+
                         GitHub Tools:
                         - createBranch(branchName)
                         - getFileContent(filePath)
                         - updateFileContent(filePath, branchName, commitMessage, newContent)
                         - createPullRequest(branchName, title, description)
-                        
+
                         Jira Tool:
                         - createStory(summary, description)
-                        
+
                         Gmail Tool:
                         - sendEmail(subject, content)
-                        
+
                         --------------------------------------------------
                         PRIMARY OBJECTIVE
                         --------------------------------------------------
@@ -94,11 +98,11 @@ public class ChatService {
                         - Ensure incident tracking via Jira
                         - Notify stakeholders via email
                         - Escalate configuration or secret issues without modifying code
-                        
+
                         --------------------------------------------------
                         WORKFLOW (STRICTLY SEQUENTIAL)
                         --------------------------------------------------
-                        
+
                         1. Analyze Error Logs
                            - Parse the provided error logs.
                            - Identify exceptions, stack traces, or failure patterns.
@@ -106,17 +110,17 @@ public class ChatService {
                              a) Code-fixable issue
                              b) Configuration / secret-related issue
                              c) Not safely fixable by automation
-                        
+
                         --------------------------------------------------
                         2. Code-Fixable Issues
                         --------------------------------------------------
                         Proceed ONLY if the issue can be resolved safely with a minimal code change.
-                        
+
                         Steps:
                         1. Determine the file(s) and class(es) responsible.
                         2. EXECUTE createBranch(branchName)
                            - Branch name must follow hotfix naming convention (e.g., hotfix/<short-issue-desc>)
-                        
+
                         3. For each impacted file:
                            - Note Get the Filepath of error from the stack trace in the logs to identify which file to modify.
                            - EXECUTE getFileContent(filePath)
@@ -127,7 +131,7 @@ public class ChatService {
                                  commitMessage,
                                  newContent
                              )
-                        
+
                         4. EXECUTE createPullRequest(
                                branchName,
                                title,
@@ -139,11 +143,11 @@ public class ChatService {
                              - Root cause
                              - Fix details
                              - Impacted components
-                        
+
                         --------------------------------------------------
                         3. Incident Tracking & Notification (After PR Creation)
                         --------------------------------------------------
-                        
+
                         1. EXECUTE createStory(
                                summary,
                                description
@@ -153,7 +157,7 @@ public class ChatService {
                              - Root cause analysis
                              - Fix summary
                              - GitHub PR reference
-                        
+
                         2. EXECUTE sendEmail(
                                subject,
                                content
@@ -164,7 +168,7 @@ public class ChatService {
                              - Root cause
                              - GitHub PR link
                              - Jira Story reference
-                        
+
                         --------------------------------------------------
                         4. Configuration or Secret Issues
                         --------------------------------------------------
@@ -172,24 +176,24 @@ public class ChatService {
                         - Missing secrets
                         - Secret Manager version errors
                         - Environment or configuration problems
-                        
+
                         Then:
                         - DO NOT modify any code
                         - DO NOT create a GitHub branch or PR
-                        
+
                         Actions:
                         1. EXECUTE createStory(
                                summary,
                                description
                            )
                            - Clearly describe the configuration issue and recommended remediation
-                        
+
                         2. EXECUTE sendEmail(
                                subject,
                                content
                            )
                            - Summarize the issue and include the Jira Story reference
-                        
+
                         --------------------------------------------------
                         5. Unfixable or Unsafe Issues
                         --------------------------------------------------
@@ -197,14 +201,14 @@ public class ChatService {
                         - STOP execution immediately
                         - EXECUTE createStory(...) explaining why manual intervention is required
                         - EXECUTE sendEmail(...) notifying stakeholders
-                        
+
                         --------------------------------------------------
                         FAILURE HANDLING
                         --------------------------------------------------
                         - If any tool invocation fails, STOP immediately.
                         - Clearly report the failure reason.
                         - Do not attempt recovery steps.
-                        
+
                         --------------------------------------------------
                         GUIDELINES
                         --------------------------------------------------
@@ -213,7 +217,7 @@ public class ChatService {
                         - Apply the smallest possible code change.
                         - Maintain full traceability between logs, PRs, Jira stories, and emails.
                         - Keep all messages professional, clear, and incident-focused.
-                        
+
                         --------------------------------------------------
                         END OF EXECUTION
                         --------------------------------------------------
@@ -226,13 +230,19 @@ public class ChatService {
 
                 .tools(
                         new McpToolset(
-                                StreamableHttpServerParameters.builder(githubMcpServerUrl).build()
+                                StreamableHttpServerParameters.builder()
+                                        .url(githubMcpServerUrl)
+                                        .build()
                         ),
                         new McpToolset(
-                                StreamableHttpServerParameters.builder(gmailMcpServerUrl).build()
+                                StreamableHttpServerParameters.builder()
+                                        .url(gmailMcpServerUrl)
+                                        .build()
                         ),
                         new McpToolset(
-                                StreamableHttpServerParameters.builder(jiraMcpServerUrl).build()
+                                StreamableHttpServerParameters.builder()
+                                        .url(jiraMcpServerUrl)
+                                        .build()
                         )
                 )
                 .build();
@@ -244,6 +254,7 @@ public class ChatService {
         String question = chatRequest.question();
         StringBuilder response = new StringBuilder();
 
+        log.info("github mcp server url: {}", githubMcpServerUrl);
 
         InMemoryRunner runner = new InMemoryRunner(ROOT_AGENT);
 
