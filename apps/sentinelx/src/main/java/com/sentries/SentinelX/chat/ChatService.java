@@ -267,6 +267,10 @@ public class ChatService {
 
     public void converse(List<String> cloudLogs) {
 
+        if(cloudLogs == null || cloudLogs.isEmpty()) {
+            return;
+        }
+
         String userId = "cloud-logs-user";
         String question = "Analyze the following cloud logs and suggest necessary hotfixes:\n" + String.join("\n", cloudLogs);
 

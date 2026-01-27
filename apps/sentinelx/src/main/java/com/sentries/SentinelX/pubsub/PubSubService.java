@@ -58,6 +58,7 @@ public class PubSubService {
                 subscriber.acknowledgeCallable().call(ackRequest);
             }
 
+            log.info("recieved messages size: {}", receivedMessages.size());
             processMessage(receivedMessages);
 
         } catch (Exception e) {
