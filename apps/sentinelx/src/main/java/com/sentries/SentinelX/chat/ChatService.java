@@ -10,16 +10,14 @@ import com.google.adk.tools.mcp.McpToolset;
 import com.google.adk.tools.mcp.StreamableHttpServerParameters;
 import com.google.genai.types.Content;
 import com.google.genai.types.Part;
-import com.sentries.SentinelX.pubsub.PubSubService;
 import io.reactivex.rxjava3.core.Flowable;
-import lombok.RequiredArgsConstructor;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor
 public class ChatService {
 
     @Value("${github.mcp.server.url}")
@@ -33,7 +31,12 @@ public class ChatService {
 
     private static String NAME = "SentinelX-agent";
 
-    public BaseAgent ROOT_AGENT = initAgent();
+    public BaseAgent ROOT_AGENT;
+
+    @PostConstruct
+    public void init() {
+        ROOT_AGENT = initAgent();
+    }
 
     public BaseAgent initAgent() {
         return LlmAgent.builder()
