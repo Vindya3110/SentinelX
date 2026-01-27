@@ -60,6 +60,8 @@ dependencies {
 	
 	// Jackson for JSON processing
 	implementation 'com.fasterxml.jackson.core:jackson-databind'
+
+    implementation 'com.h2database:h2'
 }
 
 tasks.named('test') {
