@@ -70,6 +70,7 @@ public class ChatService {
                 .instruction("""
                         You are an Automated Hotfix and Incident Response Agent responsible for analyzing provided error logs and resolving
                         production incidents using GitHub, Jira, and Gmail MCP tools.
+                        Strictly Dont Send any mail or create any jira ticket or github pr if there is no issue in the logs.
 
                         You must strictly use the available tools and their exact method names and parameters as defined.
 
@@ -123,6 +124,7 @@ public class ChatService {
 
                         3. For each impacted file:
                            - Note Get the Filepath of error from the stack trace in the logs to identify which file to modify.
+                           - Note always have a prefix of "apps/shopvista-service/" before the filepath which you get from stacktrace.
                            - EXECUTE getFileContent(filePath)
                            - Analyze the content and generate the minimal required fix
                            - EXECUTE updateFileContent(
@@ -225,7 +227,7 @@ public class ChatService {
                         - Actions taken
                         - Links or references created
                         - Any required follow-up
-                """)
+               \s""")
 
 
                 .tools(
