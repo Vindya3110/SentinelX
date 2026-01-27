@@ -92,7 +92,7 @@ jobs:
             --cpu=${{ vars.SENTINELX_CPU || '1' }} \
             --min-instances=${{ vars.SENTINELX_MIN_INSTANCES || '0' }} \
             --max-instances=${{ vars.SENTINELX_MAX_INSTANCES || '10' }} \
-            --timeout=${{ vars.SENTINELX_TIMEOUT || '300' }} \
+            --timeout=${{ vars.SENTINELX_TIMEOUT || '600' }} \
             --set-env-vars="SPRING_PROFILES_ACTIVE=dev" \
             --set-env-vars="SPRING_CLOUD_GCP_PROJECT_ID=${{ env.GCP_PROJECT_ID }}" \
             --project=${{ env.GCP_PROJECT_ID }}
