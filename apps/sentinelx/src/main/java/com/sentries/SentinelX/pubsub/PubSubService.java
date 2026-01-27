@@ -44,7 +44,7 @@ public class PubSubService {
                 String data = message.getMessage().getData().toStringUtf8();
                 String messageId = message.getMessage().getMessageId();
 
-                log.info("Received messageId={}, data={}", messageId, data);
+                log.info("Received Message from Topic");
 
                 receivedMessages.add(data);
 
