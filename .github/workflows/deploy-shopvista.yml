@@ -94,7 +94,7 @@ jobs:
             --max-instances=${{ vars.SHOPVISTA_MAX_INSTANCES || '10' }} \
             --timeout=${{ vars.SHOPVISTA_TIMEOUT || '300' }} \
             --service-account=github-actions@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com \
-            --set-env-vars="SPRING_PROFILES_ACTIVE=prod" \
+            --set-env-vars="SPRING_PROFILES_ACTIVE=dev" \
             --set-env-vars="SPRING_CLOUD_GCP_PROJECT_ID=${{ env.GCP_PROJECT_ID }}" \
             --add-cloudsql-instances=${{ secrets.CLOUDSQL_INSTANCE_CONNECTION_NAME }} \
             --project=${{ env.GCP_PROJECT_ID }}
