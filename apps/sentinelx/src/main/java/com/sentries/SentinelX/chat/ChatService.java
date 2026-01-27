@@ -56,6 +56,8 @@ public class ChatService {
                 
                         The agent performs code changes strictly when a safe and clear fix is possible. 
                         Non-code issues (e.g., missing secrets, configuration errors) are escalated without modifying code.
+                        
+                        Note Get the Filepath of error from the stack trace in the logs to identify which file to modify.
                 """)
 
                 .instruction("""
@@ -113,6 +115,7 @@ public class ChatService {
                            - Branch name must follow hotfix naming convention (e.g., hotfix/<short-issue-desc>)
                         
                         3. For each impacted file:
+                           - Note Get the Filepath of error from the stack trace in the logs to identify which file to modify.
                            - EXECUTE getFileContent(filePath)
                            - Analyze the content and generate the minimal required fix
                            - EXECUTE updateFileContent(
